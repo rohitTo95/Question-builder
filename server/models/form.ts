@@ -29,6 +29,7 @@ interface ICategorizeQuestion {
   question: string;
   image: string | null;
   options: ICategorizeOption[];
+  points: number;
 }
 
 // Interface for cloze questions
@@ -39,6 +40,7 @@ interface IClozeQuestion {
   image: string | null;
   options: string[];
   answer: IClozeAnswer[];
+  points: number;
 }
 
 // Interface for comprehension questions
@@ -50,6 +52,7 @@ interface IComprehensionQuestion {
   options: string[];
   passage: string;
   answer: string;
+  points: number;
 }
 
 // Union type for all question types
@@ -236,6 +239,13 @@ const QuestionSchema = new Schema({
   options: {
     type: Schema.Types.Mixed,
     required: true
+  },
+  points: {
+    type: Number,
+    required: true,
+    min: 1,
+    max: 100,
+    default: 10
   },
   // Optional fields based on question type
   answer: {

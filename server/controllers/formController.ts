@@ -2,12 +2,64 @@ import { Request, Response } from 'express';
 import Form from '../models/form';
 import FormResponse from '../models/formResponse';
 import FormParticipant from '../models/formParticipant';
+import { calculateTotalScore } from '../utils/scoring';
+import { uploadToCloudinary, deleteFromCloudinary, upload, CloudinaryUploadOptions } from '../utils/cloudinary';
 
 // Helper function to generate unique form URL
 function generateUniqueFormUrl(): string {
   const timestamp = Date.now().toString(36);
   const randomString = Math.random().toString(36).substring(2, 8);
   return `${timestamp}-${randomString}`;
+}
+
+// Helper function to process image uploads
+async function processImageUploads(
+  userId: string,
+  formId: string,
+  headerImageFile?: Express.Multer.File,
+  questionImages?: { [questionId: string]: Express.Multer.File }
+): Promise<{
+  headerImageUrl?: string;
+  questionImageUrls: { [questionId: string]: string };
+}> {
+  const results: {
+    headerImageUrl?: string;
+    questionImageUrls: { [questionId: string]: string };
+  } = {
+    questionImageUrls: {}
+  };
+
+  try {
+    // Upload header image if provided
+    if (headerImageFile && headerImageFile.buffer) {
+      const headerImageUrl = await uploadToCloudinary(headerImageFile.buffer, {
+        userId,
+        formId,
+        imageType: 'header'
+      });
+      results.headerImageUrl = headerImageUrl;
+    }
+
+    // Upload question images if provided
+    if (questionImages) {
+      for (const [questionId, imageFile] of Object.entries(questionImages)) {
+        if (imageFile && imageFile.buffer) {
+          const imageUrl = await uploadToCloudinary(imageFile.buffer, {
+            userId,
+            formId,
+            imageType: 'question',
+            questionId
+          });
+          results.questionImageUrls[questionId] = imageUrl;
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error uploading images:', error);
+    throw new Error('Failed to upload images to Cloudinary');
+  }
+
+  return results;
 }
 
 // Create a new form
@@ -69,6 +121,113 @@ export const createForm = async (req: Request, res: Response): Promise<void> => 
     });
   } catch (error) {
     console.error('Create form error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+};
+
+// Create a new form with image uploads
+export const createFormWithImages = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { header, questions } = req.body;
+    const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+
+    // Parse questions if it's a string (from FormData)
+    let parsedQuestions = typeof questions === 'string' ? JSON.parse(questions) : questions;
+    let parsedHeader = typeof header === 'string' ? JSON.parse(header) : header;
+
+    // Validation
+    if (!parsedHeader || !parsedHeader.title || parsedHeader.title.trim() === '') {
+      res.status(400).json({
+        success: false,
+        message: 'Form title is required'
+      });
+      return;
+    }
+
+    if (!parsedQuestions || !Array.isArray(parsedQuestions) || parsedQuestions.length === 0) {
+      res.status(400).json({
+        success: false,
+        message: 'At least one question is required'
+      });
+      return;
+    }
+
+    // Create form first to get the form ID
+    const newForm = new Form({
+      userId: req.user!.userId,
+      header: parsedHeader,
+      questions: parsedQuestions,
+      formUrl: generateUniqueFormUrl()
+    });
+
+    const savedForm = await newForm.save();
+
+    // Process image uploads
+    try {
+      const headerImageFile = files?.['headerImage']?.[0];
+      const questionImages: { [questionId: string]: Express.Multer.File } = {};
+
+      // Extract question images from files
+      Object.keys(files || {}).forEach(fieldName => {
+        if (fieldName.startsWith('questionImage_')) {
+          const questionId = fieldName.replace('questionImage_', '');
+          questionImages[questionId] = files[fieldName][0];
+        }
+      });
+
+      const uploadResults = await processImageUploads(
+        req.user!.userId,
+        (savedForm._id as any).toString(),
+        headerImageFile,
+        questionImages
+      );
+
+      // Update form with image URLs
+      const updateData: any = {};
+      
+      if (uploadResults.headerImageUrl) {
+        updateData['header.headerImg'] = uploadResults.headerImageUrl;
+      }
+
+      // Update question images
+      if (Object.keys(uploadResults.questionImageUrls).length > 0) {
+        parsedQuestions.forEach((question: any, index: number) => {
+          const questionId = question['question-id'];
+          if (uploadResults.questionImageUrls[questionId]) {
+            updateData[`questions.${index}.image`] = uploadResults.questionImageUrls[questionId];
+          }
+        });
+      }
+
+      // Update form with image URLs if any were uploaded
+      if (Object.keys(updateData).length > 0) {
+        await Form.findByIdAndUpdate(savedForm._id, { $set: updateData });
+      }
+
+    } catch (uploadError) {
+      console.error('Image upload error:', uploadError);
+      // Don't fail the form creation if image upload fails
+    }
+
+    res.status(201).json({
+      success: true,
+      message: 'Form created successfully',
+      data: {
+        form: {
+          id: savedForm._id,
+          formUrl: savedForm.formUrl,
+          title: savedForm.header.title,
+          isPublished: savedForm.isPublished,
+          questionCount: savedForm.questions.length,
+          createdAt: savedForm.createdAt
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Create form with images error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error'
@@ -197,6 +356,90 @@ export const updateForm = async (req: Request, res: Response): Promise<void> => 
     });
   } catch (error) {
     console.error('Update form error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+};
+
+// Update a form with image uploads
+export const updateFormWithImages = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { formId } = req.params;
+    const { header, questions } = req.body;
+    const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+
+    // Parse data if it's a string (from FormData)
+    let parsedQuestions = typeof questions === 'string' ? JSON.parse(questions) : questions;
+    let parsedHeader = typeof header === 'string' ? JSON.parse(header) : header;
+
+    const form = await Form.findOne({
+      _id: formId,
+      userId: req.user!.userId
+    });
+
+    if (!form) {
+      res.status(404).json({
+        success: false,
+        message: 'Form not found'
+      });
+      return;
+    }
+
+    // Process image uploads
+    try {
+      const headerImageFile = files?.['headerImage']?.[0];
+      const questionImages: { [questionId: string]: Express.Multer.File } = {};
+
+      // Extract question images from files
+      Object.keys(files || {}).forEach(fieldName => {
+        if (fieldName.startsWith('questionImage_')) {
+          const questionId = fieldName.replace('questionImage_', '');
+          questionImages[questionId] = files[fieldName][0];
+        }
+      });
+
+      const uploadResults = await processImageUploads(
+        req.user!.userId,
+        formId,
+        headerImageFile,
+        questionImages
+      );
+
+      // Update header with new image URL if uploaded
+      if (uploadResults.headerImageUrl && parsedHeader) {
+        parsedHeader.headerImg = uploadResults.headerImageUrl;
+      }
+
+      // Update question images
+      if (Object.keys(uploadResults.questionImageUrls).length > 0 && parsedQuestions) {
+        parsedQuestions.forEach((question: any) => {
+          const questionId = question['question-id'];
+          if (uploadResults.questionImageUrls[questionId]) {
+            question.image = uploadResults.questionImageUrls[questionId];
+          }
+        });
+      }
+
+    } catch (uploadError) {
+      console.error('Image upload error:', uploadError);
+      // Don't fail the form update if image upload fails
+    }
+
+    // Update form data
+    if (parsedHeader) form.header = parsedHeader;
+    if (parsedQuestions) form.questions = parsedQuestions;
+
+    await form.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Form updated successfully',
+      data: { form }
+    });
+  } catch (error) {
+    console.error('Update form with images error:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error'
@@ -447,7 +690,7 @@ export const registerParticipant = async (req: Request, res: Response): Promise<
 export const submitPublicFormResponse = async (req: Request, res: Response): Promise<void> => {
   try {
     const { formUrl } = req.params;
-    const { participantId, responses } = req.body;
+    const { participantId, responses, totalScore, maxPossibleScore } = req.body;
 
     // Validation
     if (!participantId || !responses || !Array.isArray(responses) || responses.length === 0) {
@@ -501,12 +744,27 @@ export const submitPublicFormResponse = async (req: Request, res: Response): Pro
       return;
     }
 
+    // Use pre-calculated scores from client, or calculate server-side as fallback
+    let finalTotalScore = totalScore;
+    let finalMaxPossibleScore = maxPossibleScore;
+    
+    if (typeof totalScore !== 'number' || typeof maxPossibleScore !== 'number') {
+      console.log('No valid pre-calculated scores provided, calculating server-side as fallback');
+      const scoreResult = calculateTotalScore(form.questions, responses);
+      finalTotalScore = scoreResult.totalScore;
+      finalMaxPossibleScore = scoreResult.maxPossibleScore;
+    } else {
+      console.log('Using pre-calculated scores:', { totalScore, maxPossibleScore });
+    }
+
     // Create form response
     const formResponse = new FormResponse({
       formId: form._id,
       participantId: participantId,
       formUrl: formUrl,
       responses: responses,
+      totalScore: finalTotalScore,
+      maxPossibleScore: finalMaxPossibleScore,
       isCompleted: true,
       ipAddress: req.ip,
       userAgent: req.get('User-Agent')
@@ -514,12 +772,24 @@ export const submitPublicFormResponse = async (req: Request, res: Response): Pro
 
     await formResponse.save();
 
+    // Add the response ID to the form's responses array
+    await Form.findByIdAndUpdate(
+      form._id,
+      { $push: { responses: formResponse._id } },
+      { new: true }
+    );
+
     res.status(201).json({
       success: true,
       message: 'Form response submitted successfully',
       data: {
         responseId: formResponse._id,
-        submittedAt: formResponse.submittedAt
+        submittedAt: formResponse.submittedAt,
+        score: {
+          totalScore: finalTotalScore,
+          maxPossibleScore: finalMaxPossibleScore,
+          percentage: finalMaxPossibleScore > 0 ? Math.round((finalTotalScore / finalMaxPossibleScore) * 100) : 0
+        }
       }
     });
   } catch (error) {
@@ -528,5 +798,37 @@ export const submitPublicFormResponse = async (req: Request, res: Response): Pro
       success: false,
       message: 'Internal server error'
     });
+  }
+};
+
+// Debug scoring endpoint
+export const debugScoring = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { formUrl } = req.params;
+    const { responses } = req.body;
+
+    const form = await Form.findOne({ formUrl });
+    if (!form) {
+      res.status(404).json({ success: false, message: 'Form not found' });
+      return;
+    }
+
+    console.log('=== DEBUGGING SCORING ===');
+    console.log('Form questions:', JSON.stringify(form.questions, null, 2));
+    console.log('Received responses:', JSON.stringify(responses, null, 2));
+
+    const scoreResult = calculateTotalScore(form.questions, responses);
+    
+    console.log('Score result:', JSON.stringify(scoreResult, null, 2));
+
+    res.json({
+      success: true,
+      scoreResult,
+      formQuestions: form.questions,
+      receivedResponses: responses
+    });
+  } catch (error) {
+    console.error('Error in debug scoring:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };

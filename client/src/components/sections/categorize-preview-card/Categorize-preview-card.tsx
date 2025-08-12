@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2 } from 'lucide-react';
+import { Trash2, Loader2 } from 'lucide-react';
 import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, useDraggable, useDroppable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 
@@ -17,6 +17,7 @@ interface CategorizeData {
   question: string;
   options: Option[];
   image?: string;
+  points?: number;
 }
 
 interface CategorizePreviewCardProps {
@@ -26,6 +27,9 @@ interface CategorizePreviewCardProps {
   isMinimized?: boolean;
   isInteractive?: boolean;
   onAnswerUpdate?: (questionIndex: number, questionId: string, response: any, answer: any) => void;
+  imageLoading?: boolean;
+  onImageLoadStart?: () => void;
+  onImageLoad?: () => void;
 }
 
 // Draggable Option Component
@@ -117,7 +121,10 @@ const CategorizePreviewCard: React.FC<CategorizePreviewCardProps> = ({
   onDelete, 
   isMinimized = false, 
   isInteractive = false,
-  onAnswerUpdate 
+  onAnswerUpdate,
+  imageLoading = false,
+  onImageLoadStart,
+  onImageLoad
 }) => {
   // Extract unique categories from options
   const categories = [...new Set(data.options.map(option => option.category))];
@@ -190,6 +197,9 @@ const CategorizePreviewCard: React.FC<CategorizePreviewCardProps> = ({
               <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm">
                 Categorize
               </span>
+              <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
+                {data.points || 10} points
+              </span>
             </div>
             {!isInteractive && onDelete && (
               <Button
@@ -208,11 +218,21 @@ const CategorizePreviewCard: React.FC<CategorizePreviewCardProps> = ({
           <CardContent className="space-y-6">
             {/* Question Image */}
             {data.image && (
-              <div className="mb-4">
+              <div className="mb-4 relative">
+                {imageLoading && (
+                  <div className="w-full max-w-2xl h-64 bg-gray-200 rounded-lg border border-gray-200 flex items-center justify-center animate-pulse">
+                    <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+                  </div>
+                )}
                 <img
                   src={data.image}
                   alt="Question"
-                  className="w-full max-w-2xl h-64 object-cover rounded-lg border border-gray-200"
+                  className={`w-full max-w-2xl h-64 object-cover rounded-lg border border-gray-200 transition-opacity duration-300 ${
+                    imageLoading ? 'opacity-0 absolute top-0 left-0' : 'opacity-100'
+                  }`}
+                  onLoadStart={onImageLoadStart}
+                  onLoad={onImageLoad}
+                  onError={onImageLoad}
                 />
               </div>
             )}

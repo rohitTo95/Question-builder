@@ -1,7 +1,9 @@
 import { apiPost, apiPatch, apiGet } from '../utils/api';
 
-// Use environment variable for API URL, fallback to localhost for development
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+// Use environment variable for API URL in production, proxy in development
+const API_BASE_URL = import.meta.env.PROD 
+  ? `${import.meta.env.VITE_SERVER_URL}/api` 
+  : '/api'; // Use Vite proxy in development
 
 export interface FormData {
   header: {
@@ -42,6 +44,8 @@ export interface FormResponse {
     response: any; // Raw response data
     answer: any; // User's selected answer
   }>;
+  totalScore?: number; // Pre-calculated total score
+  maxPossibleScore?: number; // Pre-calculated max possible score
 }
 
 export const formService = {

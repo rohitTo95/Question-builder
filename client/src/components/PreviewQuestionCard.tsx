@@ -11,6 +11,7 @@ interface Question {
   options: any[];
   answer?: any;
   passage?: string;
+  points?: number;
 }
 
 interface PreviewQuestionCardProps {
@@ -18,15 +19,22 @@ interface PreviewQuestionCardProps {
   questionIndex: number;
   onAnswerUpdate: (questionIndex: number, questionId: string, response: any, answer: any) => void;
   isInteractive?: boolean;
+  imageLoading?: { [key: string]: boolean };
+  onImageLoadStart?: (imageKey: string) => void;
+  onImageLoad?: (imageKey: string) => void;
 }
 
 export const PreviewQuestionCard: React.FC<PreviewQuestionCardProps> = ({ 
   question, 
   questionIndex, 
   onAnswerUpdate, 
-  isInteractive = false 
+  isInteractive = false,
+  imageLoading = {},
+  onImageLoadStart,
+  onImageLoad
 }) => {
   const questionNumber = questionIndex + 1;
+  const imageKey = `question-${question['question-id']}`;
 
   switch (question['question-type']) {
     case 'Categorize':
@@ -37,6 +45,9 @@ export const PreviewQuestionCard: React.FC<PreviewQuestionCardProps> = ({
           isInteractive={isInteractive}
           onAnswerUpdate={onAnswerUpdate}
           isMinimized={false}
+          imageLoading={imageLoading[imageKey]}
+          onImageLoadStart={() => onImageLoadStart?.(imageKey)}
+          onImageLoad={() => onImageLoad?.(imageKey)}
         />
       );
 
@@ -48,6 +59,9 @@ export const PreviewQuestionCard: React.FC<PreviewQuestionCardProps> = ({
           isInteractive={isInteractive}
           onAnswerUpdate={onAnswerUpdate}
           isMinimized={false}
+          imageLoading={imageLoading[imageKey]}
+          onImageLoadStart={() => onImageLoadStart?.(imageKey)}
+          onImageLoad={() => onImageLoad?.(imageKey)}
         />
       );
 
@@ -59,6 +73,9 @@ export const PreviewQuestionCard: React.FC<PreviewQuestionCardProps> = ({
           isInteractive={isInteractive}
           onAnswerUpdate={onAnswerUpdate}
           isMinimized={false}
+          imageLoading={imageLoading[imageKey]}
+          onImageLoadStart={() => onImageLoadStart?.(imageKey)}
+          onImageLoad={() => onImageLoad?.(imageKey)}
         />
       );
 

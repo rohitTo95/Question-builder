@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { DndContext, DragEndEvent, DragOverlay, useDraggable, useDroppable } from '@dnd-kit/core';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Loader2 } from 'lucide-react';
 
 interface ClozeAnswer {
   content: string;
@@ -17,6 +17,7 @@ interface ClozeData {
   options: string[];
   answer: ClozeAnswer[];
   image?: string;
+  points?: number;
 }
 
 interface ClozePreviewCardProps {
@@ -26,6 +27,9 @@ interface ClozePreviewCardProps {
   isMinimized?: boolean;
   isInteractive?: boolean;
   onAnswerUpdate?: (questionIndex: number, questionId: string, response: any, answer: any) => void;
+  imageLoading?: boolean;
+  onImageLoadStart?: () => void;
+  onImageLoad?: () => void;
 }
 
 interface TextSegment {
@@ -116,7 +120,10 @@ const ClozePreviewCard: React.FC<ClozePreviewCardProps> = ({
   onDelete, 
   isMinimized = false,
   isInteractive = false,
-  onAnswerUpdate 
+  onAnswerUpdate,
+  imageLoading = false,
+  onImageLoadStart,
+  onImageLoad
 }) => {
   const [droppedItems, setDroppedItems] = useState<{[key: string]: string}>({});
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -242,6 +249,9 @@ const ClozePreviewCard: React.FC<ClozePreviewCardProps> = ({
               <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm">
                 Cloze
               </span>
+              <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
+                {data.points || 10} points
+              </span>
             </div>
             {!isInteractive && onDelete && (
               <Button
@@ -260,11 +270,21 @@ const ClozePreviewCard: React.FC<ClozePreviewCardProps> = ({
           <CardContent className="space-y-6">
             {/* Question Image */}
             {data.image && (
-              <div className="mb-4">
+              <div className="mb-4 relative">
+                {imageLoading && (
+                  <div className="w-full max-w-2xl h-64 bg-gray-200 rounded-lg border border-gray-200 flex items-center justify-center animate-pulse">
+                    <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+                  </div>
+                )}
                 <img
                   src={data.image}
                   alt="Question"
-                  className="w-full max-w-2xl h-64 object-cover rounded-lg border border-gray-200"
+                  className={`w-full max-w-2xl h-64 object-cover rounded-lg border border-gray-200 transition-opacity duration-300 ${
+                    imageLoading ? 'opacity-0 absolute top-0 left-0' : 'opacity-100'
+                  }`}
+                  onLoadStart={onImageLoadStart}
+                  onLoad={onImageLoad}
+                  onError={onImageLoad}
                 />
               </div>
             )}

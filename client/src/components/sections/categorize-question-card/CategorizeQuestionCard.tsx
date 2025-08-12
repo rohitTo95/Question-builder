@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { handleDragEnd, sensorHook } from "@/utils/dragAndDropt";
 export const CategorizeQuestionCard = ({ questionStoreState }: { questionStoreState: any }) => {
   const [question, setQuestion] = useState<string>("");
+  const [points, setPoints] = useState<number>(10);
   const [optionInput, setOptionInput] = useState<string>("");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [categoryInput, setCategoryInput] = useState<string>("");
@@ -109,7 +110,8 @@ export const CategorizeQuestionCard = ({ questionStoreState }: { questionStoreSt
       'question-type': 'Categorize',
       'question': question,
       'options': options,
-      'image': questionImage
+      'image': questionImage,
+      'points': points
     };
 
     // Update the question store state
@@ -126,6 +128,7 @@ export const CategorizeQuestionCard = ({ questionStoreState }: { questionStoreSt
 
     // Reset form after adding question
     setQuestion("");
+    setPoints(10);
     setOptionInput("");
     setSelectedCategory("");
     setCategoryInput("");
@@ -158,6 +161,24 @@ export const CategorizeQuestionCard = ({ questionStoreState }: { questionStoreSt
             id="question_input"
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
+          />
+        </div>
+
+        {/* Points Input Section */}
+        <div className="flex flex-col justify-between align-start gap-y-4 w-full mt-4">
+          <label htmlFor="points_input" className="text-lg font-medium">
+            Points (1-100)
+          </label>
+          <Input
+            type="number"
+            min="1"
+            max="100"
+            placeholder="10"
+            name="points_input"
+            id="points_input"
+            value={points}
+            onChange={(e) => setPoints(Math.min(100, Math.max(1, parseInt(e.target.value) || 10)))}
+            className="w-32"
           />
         </div>
 

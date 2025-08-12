@@ -55,6 +55,13 @@ const FormBuilder = () => {
   const handleReorderQuestions = (newOrder: number[]) => {
     setQuestionOrder(newOrder);
   };
+
+  // Calculate total points
+  const calculateTotalPoints = () => {
+    return questionSet.reduce((total: number, question: any) => {
+      return total + (question.points || 10);
+    }, 0);
+  };
   
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -373,6 +380,24 @@ const FormBuilder = () => {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Total Points Summary */}
+            {questionSet.length > 0 && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-blue-800">Form Summary:</span>
+                    <span className="text-blue-700">{questionSet.length} question{questionSet.length !== 1 ? 's' : ''}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-blue-800">Total Points:</span>
+                    <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+                      {calculateTotalPoints()} points
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Live Form Success Alert */}
             {isFormLive && publicUrl && (
               <Alert className="border-green-200 bg-green-50">

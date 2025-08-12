@@ -9,6 +9,7 @@ import { Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { formService } from '@/services/formService';
 import { useToast } from '@/hooks/use-toast';
 import { PreviewQuestionCard } from '@/components/PreviewQuestionCard';
+import { calculateTotalScore } from '@/utils/scoring';
 
 interface FormData {
   _id: string;
@@ -40,6 +41,31 @@ const PublicFormPage = () => {
   const [participantId, setParticipantId] = useState<string>('');
   const [responses, setResponses] = useState<{ [key: number]: { response: any, answer: any, questionId: string } }>({});
   const [submitting, setSubmitting] = useState(false);
+  const [scoreData, setScoreData] = useState<{ 
+    totalScore: number; 
+    maxPossibleScore: number; 
+    percentage: number;
+    results?: any[];
+  } | null>(null);
+  const [imageLoading, setImageLoading] = useState<{ [key: string]: boolean }>({});
+  const [registering, setRegistering] = useState(false);
+
+  // Calculate total points
+  const calculateTotalPoints = () => {
+    if (!formData) return 0;
+    return formData.questions.reduce((total: number, question: any) => {
+      return total + (question.points || 10);
+    }, 0);
+  };
+
+  // Handle image loading
+  const handleImageLoad = (imageKey: string) => {
+    setImageLoading(prev => ({ ...prev, [imageKey]: false }));
+  };
+
+  const handleImageLoadStart = (imageKey: string) => {
+    setImageLoading(prev => ({ ...prev, [imageKey]: true }));
+  };
 
   // Load form data
   useEffect(() => {
@@ -80,6 +106,8 @@ const PublicFormPage = () => {
       return;
     }
 
+    setRegistering(true);
+
     try {
       const response = await formService.registerParticipant(formUrl!, participant);
       if (response.success) {
@@ -96,6 +124,8 @@ const PublicFormPage = () => {
         description: err.message || "Failed to register. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setRegistering(false);
     }
   };
 
@@ -133,12 +163,26 @@ const PublicFormPage = () => {
         answer: responses[index]?.answer || {}
       }));
 
+      // Calculate scores client-side before submission
+      const scoreResult = calculateTotalScore(formData.questions, formattedResponses);
+      console.log('Client-side score calculation:', scoreResult);
+
       const response = await formService.submitFormResponse(formUrl!, {
         participantId,
-        responses: formattedResponses
+        responses: formattedResponses,
+        // Include pre-calculated scores
+        totalScore: scoreResult.totalEarned,
+        maxPossibleScore: scoreResult.totalMax
       });
 
       if (response.success) {
+        // Store score data from our calculation
+        setScoreData({
+          totalScore: scoreResult.totalEarned,
+          maxPossibleScore: scoreResult.totalMax,
+          percentage: scoreResult.percentage,
+          results: scoreResult.results
+        });
         setStep('success');
         toast({
           title: "Success!",
@@ -193,11 +237,23 @@ const PublicFormPage = () => {
         <Card className="mb-6">
           <CardHeader>
             {formData.header.headerImg && (
-              <img
-                src={formData.header.headerImg}
-                alt="Form header"
-                className="w-full h-48 object-cover rounded-lg mb-4"
-              />
+              <div className="relative">
+                {imageLoading['header'] && (
+                  <div className="w-full h-48 bg-gray-200 rounded-lg mb-4 flex items-center justify-center animate-pulse">
+                    <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+                  </div>
+                )}
+                <img
+                  src={formData.header.headerImg}
+                  alt="Form header"
+                  className={`w-full h-48 object-cover rounded-lg mb-4 transition-opacity duration-300 ${
+                    imageLoading['header'] ? 'opacity-0 absolute top-0 left-0' : 'opacity-100'
+                  }`}
+                  onLoadStart={() => handleImageLoadStart('header')}
+                  onLoad={() => handleImageLoad('header')}
+                  onError={() => handleImageLoad('header')}
+                />
+              </div>
             )}
             <h1 className="text-2xl font-bold">{formData.header.title}</h1>
             {formData.header.description && (
@@ -239,8 +295,15 @@ const PublicFormPage = () => {
                     required
                   />
                 </div>
-                <Button type="submit" className="w-full">
-                  Start Form
+                <Button type="submit" className="w-full" disabled={registering}>
+                  {registering ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Starting Form...
+                    </>
+                  ) : (
+                    'Start Form'
+                  )}
                 </Button>
               </form>
             </CardContent>
@@ -250,6 +313,24 @@ const PublicFormPage = () => {
         {/* Form Step */}
         {step === 'form' && (
           <div className="space-y-6">
+            {/* Form Points Summary */}
+            <Card className="bg-blue-50 border-blue-200">
+              <CardContent className="pt-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-blue-800">Form Overview:</span>
+                    <span className="text-blue-700">{formData.questions.length} question{formData.questions.length !== 1 ? 's' : ''}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-blue-800">Total Points:</span>
+                    <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+                      {calculateTotalPoints()} points
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             {formData.questions.map((question, index) => (
               <Card key={index}>
                 <CardContent className="pt-6">
@@ -258,6 +339,9 @@ const PublicFormPage = () => {
                     questionIndex={index}
                     onAnswerUpdate={handleAnswerUpdate}
                     isInteractive={true}
+                    imageLoading={imageLoading}
+                    onImageLoadStart={handleImageLoadStart}
+                    onImageLoad={handleImageLoad}
                   />
                 </CardContent>
               </Card>
@@ -294,6 +378,36 @@ const PublicFormPage = () => {
                 <p className="text-muted-foreground mb-6">
                   Your response has been successfully submitted. We appreciate your participation.
                 </p>
+                
+                {/* Score Display */}
+                {scoreData && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+                    <h3 className="text-lg font-semibold text-blue-800 mb-4">Your Results</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-blue-600">{scoreData.totalScore}</div>
+                        <div className="text-sm text-blue-700">Points Earned</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-blue-600">{scoreData.maxPossibleScore}</div>
+                        <div className="text-sm text-blue-700">Total Points</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-3xl font-bold text-blue-600">{scoreData.percentage}%</div>
+                        <div className="text-sm text-blue-700">Score</div>
+                      </div>
+                    </div>
+                    <div className="mt-4">
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="bg-blue-600 h-2 rounded-full transition-all duration-500"
+                          style={{ width: `${scoreData.percentage}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
                 <Button onClick={() => navigate('/')}>
                   Return to Home
                 </Button>

@@ -14,6 +14,7 @@ import { ImageIcon, X } from "lucide-react";
 
 const ClozeQuestionCard = ({ questionStoreState }: { questionStoreState: any }) => {
     const [textInput, setTextInput] = useState<string>("");
+    const [points, setPoints] = useState<number>(10);
     const [previewText, setPreviewText] = useState<string>("");
     const [options, setOptions] = useState<Array<{id: string, content: string}>>([]);
     const [answers, setAnswers] = useState<Array<{content: string, startIndex: number, endIndex: number}>>([]);
@@ -63,7 +64,8 @@ const ClozeQuestionCard = ({ questionStoreState }: { questionStoreState: any }) 
         'question': textInput,
         'options': options.map(option => option.content),
         'answer': answers,
-        'image': questionImage
+        'image': questionImage,
+        'points': points
       };
 
       // Update the question store state
@@ -77,6 +79,7 @@ const ClozeQuestionCard = ({ questionStoreState }: { questionStoreState: any }) 
 
       // Reset form after adding question
       setTextInput("");
+      setPoints(10);
       setPreviewText("");
       setOptions([]);
       setAnswers([]);
@@ -176,6 +179,28 @@ const ClozeQuestionCard = ({ questionStoreState }: { questionStoreState: any }) 
         className="bg-gray-50"
       />
       </div>
+      
+     {/* Points Input */}
+     <div className="flex flex-col w-full gap-2">
+       <label htmlFor="points-input-field" className="text-xl">Points</label>
+       <Input 
+         name="points-input-field"
+         id="points-input-field"
+         type="number"
+         min="1"
+         max="100"
+         value={points}
+         onChange={(e) => {
+           const value = parseInt(e.target.value);
+           if (value >= 1 && value <= 100) {
+             setPoints(value);
+           }
+         }}
+         placeholder="Enter points (1-100)"
+         className="w-32"
+       />
+     </div>
+
      <div className="flex flex-col">
         <div className="flex justify-between items-center mb-4">
           <label htmlFor="cloze-input-field" className="text-xl">Question</label>

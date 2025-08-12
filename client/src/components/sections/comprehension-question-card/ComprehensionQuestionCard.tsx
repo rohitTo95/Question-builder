@@ -10,6 +10,7 @@ import {v4 as uuid} from 'uuid';
 const ComprehensionQuestionCard = ({ questionStoreState }: { questionStoreState: any }) => {
   const [passage, setPassage] = useState<string>("");
   const [numberOfQuestions, setNumberOfQuestions] = useState<number>(1);
+  const [points, setPoints] = useState<number>(10);
   const [question, setQuestion] = useState<any>([]);
   const [selectedOption, setSelectedOption] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -77,7 +78,8 @@ const ComprehensionQuestionCard = ({ questionStoreState }: { questionStoreState:
       'question': q.question,
       'options': q.options,
       'image': questionImage,
-      'answer': q.answer || ""
+      'answer': q.answer || "",
+      'points': points
     }));
 
     // Update the question store state with individual questions
@@ -92,6 +94,7 @@ const ComprehensionQuestionCard = ({ questionStoreState }: { questionStoreState:
     // Reset form after adding question
     setPassage("");
     setNumberOfQuestions(1);
+    setPoints(10);
     setQuestion([]);
     setSelectedQuestions(new Set());
     setSelectedOption("");
@@ -172,6 +175,27 @@ const ComprehensionQuestionCard = ({ questionStoreState }: { questionStoreState:
             onChange={(e) => setPassage(e.target.value)}
             className="resize-none h-1/3"
             required
+          />
+        </div>
+
+        {/* Points Input */}
+        <div className="flex flex-col w-full gap-2">
+          <label htmlFor="points-input-field" className="text-xl">Points</label>
+          <Input 
+            name="points-input-field"
+            id="points-input-field"
+            type="number"
+            min="1"
+            max="100"
+            value={points}
+            onChange={(e) => {
+              const value = parseInt(e.target.value);
+              if (value >= 1 && value <= 100) {
+                setPoints(value);
+              }
+            }}
+            placeholder="Enter points (1-100)"
+            className="w-32"
           />
         </div>
 

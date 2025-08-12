@@ -34,6 +34,8 @@ export interface IFormResponse extends Document {
     name?: string;
   };
   responses: IQuestionResponse[];
+  totalScore: number;
+  maxPossibleScore: number;
   isCompleted: boolean;
   submittedAt: Date;
   ipAddress?: string;
@@ -106,6 +108,18 @@ const FormResponseSchema: Schema<IFormResponse> = new Schema(
     responses: [{
       type: QuestionResponseSchema
     }],
+    totalScore: {
+      type: Number,
+      default: 0,
+      min: 0,
+      index: true
+    },
+    maxPossibleScore: {
+      type: Number,
+      default: 0,
+      min: 0,
+      index: true
+    },
     isCompleted: {
       type: Boolean,
       default: false,

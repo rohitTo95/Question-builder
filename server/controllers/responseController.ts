@@ -42,6 +42,13 @@ export const submitFormResponse = async (req: Request, res: Response): Promise<v
 
     await formResponse.save();
 
+    // Add the response ID to the form's responses array
+    await Form.findByIdAndUpdate(
+      form._id,
+      { $push: { responses: formResponse._id } },
+      { new: true }
+    );
+
     res.status(201).json({
       success: true,
       message: 'Form response submitted successfully',
