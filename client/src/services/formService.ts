@@ -1,9 +1,7 @@
 import { apiPost, apiPatch, apiGet } from '../utils/api';
 
-// Use environment variable for API URL in production, proxy in development
-const API_BASE_URL = import.meta.env.PROD 
-  ? `${import.meta.env.VITE_SERVER_URL}/api` 
-  : '/api'; // Use Vite proxy in development
+// Always use /api as base URL - Vercel rewrites will handle routing in production
+const API_BASE_URL = '/api';
 
 export interface FormData {
   header: {

@@ -37,11 +37,19 @@ const port = process.env.PORT || 3000
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production' 
     ? (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-        // Allow requests with no origin (e.g., mobile apps, server-to-server)
+        // Allow requests with no origin (e.g., Vercel rewrites, mobile apps, server-to-server)
         if (!origin) return callback(null, true);
         
         const allowedOrigins = process.env.CLIENT_URL ? [process.env.CLIENT_URL] : [];
-        if (allowedOrigins.includes(origin)) {
+        
+        // Also allow Vercel-specific origins that might appear during rewrites
+        const vercelOrigins = [
+          'https://vercel.app',
+          'https://vercel.com',
+        ];
+        
+        // Check if origin matches allowed origins or is a Vercel origin
+        if (allowedOrigins.includes(origin) || vercelOrigins.some(v => origin.includes('vercel'))) {
           return callback(null, true);
         }
         
