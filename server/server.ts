@@ -35,7 +35,9 @@ const port = process.env.PORT || 3000
 
 // CORS configuration
 const corsOptions = {
-  origin: ['http://localhost:8080', 'http://localhost:3000'], // Add your frontend URLs
+  origin: process.env.NODE_ENV === 'production' 
+    ? [process.env.CLIENT_URL || 'https://your-vercel-app.vercel.app'] 
+    : ['http://localhost:8080', 'http://localhost:3000'], // Add your frontend URLs
   credentials: true, // Allow cookies
   optionsSuccessStatus: 200
 }
