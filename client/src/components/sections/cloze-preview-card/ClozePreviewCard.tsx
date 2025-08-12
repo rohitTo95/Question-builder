@@ -268,6 +268,19 @@ const ClozePreviewCard: React.FC<ClozePreviewCardProps> = ({
         
         {!isMinimized && (
           <CardContent className="space-y-6">
+            {/* Question with blanks */}
+            <div className="space-y-2">
+              <h4 className="text-lg font-medium text-gray-700">Fill in the blanks</h4>
+              <div className="p-4 bg-gray-50 rounded-lg border-2 border-gray-200">
+                <div className="text-lg leading-relaxed text-gray-800">
+                  {segments.map((segment, index) => renderTextSegment(segment, index))}
+                </div>
+              </div>
+              <p className="text-sm text-gray-600">
+                Drag the options from below to fill in the blanks above.
+              </p>
+            </div>
+
             {/* Question Image */}
             {data.image && (
               <div className="mb-4 relative">
@@ -288,19 +301,6 @@ const ClozePreviewCard: React.FC<ClozePreviewCardProps> = ({
                 />
               </div>
             )}
-
-            {/* Question with blanks */}
-            <div className="space-y-2">
-              <h4 className="text-lg font-medium text-gray-700">Fill in the blanks</h4>
-              <div className="p-4 bg-gray-50 rounded-lg border-2 border-gray-200">
-                <div className="text-lg leading-relaxed text-gray-800">
-                  {segments.map((segment, index) => renderTextSegment(segment, index))}
-                </div>
-              </div>
-              <p className="text-sm text-gray-600">
-                Drag the options from below to fill in the blanks above.
-              </p>
-            </div>
 
             {/* Options Section */}
             <div className="space-y-3">

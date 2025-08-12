@@ -82,6 +82,16 @@ const ComprehensionPreviewCard: React.FC<ComprehensionPreviewCardProps> = ({
       
       {!isMinimized && (
         <CardContent className="space-y-6">
+          {/* Question Section */}
+          <div className="space-y-2">
+            <h4 className="text-lg font-medium text-gray-700">Question</h4>
+            <div className="p-4 bg-white rounded-lg border border-gray-200">
+              <p className="text-base font-medium text-gray-800 mb-4">
+                {data.question}
+              </p>
+            </div>
+          </div>
+
           {/* Question Image */}
           {data.image && (
             <div className="mb-4 relative">
@@ -103,13 +113,10 @@ const ComprehensionPreviewCard: React.FC<ComprehensionPreviewCardProps> = ({
             </div>
           )}
 
-          {/* Question Section */}
+          {/* Options Section */}
           <div className="space-y-4">
+            <h4 className="text-lg font-medium text-gray-700">Answer Options</h4>
             <div className="p-4 bg-white rounded-lg border border-gray-200">
-              <p className="text-base font-medium text-gray-800 mb-4">
-                {data.question}
-              </p>
-              
               <RadioGroup 
                 className="space-y-3"
                 value={selectedAnswer}

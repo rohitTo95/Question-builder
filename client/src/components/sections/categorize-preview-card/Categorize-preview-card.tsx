@@ -216,6 +216,16 @@ const CategorizePreviewCard: React.FC<CategorizePreviewCardProps> = ({
         
         {!isMinimized && (
           <CardContent className="space-y-6">
+            {/* Question */}
+            <div className="space-y-2">
+              <h3 className="text-xl font-semibold text-gray-800">
+                {data.question}
+              </h3>
+              <p className="text-sm text-gray-600">
+                Drag and drop the options into the correct categories below.
+              </p>
+            </div>
+
             {/* Question Image */}
             {data.image && (
               <div className="mb-4 relative">
@@ -236,16 +246,6 @@ const CategorizePreviewCard: React.FC<CategorizePreviewCardProps> = ({
                 />
               </div>
             )}
-
-            {/* Question */}
-            <div className="space-y-2">
-              <h3 className="text-xl font-semibold text-gray-800">
-                {data.question}
-              </h3>
-              <p className="text-sm text-gray-600">
-                Drag and drop the options into the correct categories below.
-              </p>
-            </div>
 
             {/* Options Section */}
             <div className="space-y-3">

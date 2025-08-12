@@ -1,15 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, CheckCircle, AlertCircle } from 'lucide-react';
-import { formService } from '@/services/formService';
-import { useToast } from '@/hooks/use-toast';
-import { PreviewQuestionCard } from '@/components/PreviewQuestionCard';
-import { calculateTotalScore } from '@/utils/scoring';
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Loader2, CheckCircle, AlertCircle } from "lucide-react";
+import { formService } from "@/services/formService";
+import { useToast } from "@/hooks/use-toast";
+import { PreviewQuestionCard } from "@/components/PreviewQuestionCard";
+import { calculateTotalScore } from "@/utils/scoring";
 
 interface FormData {
   _id: string;
@@ -35,19 +35,26 @@ const PublicFormPage = () => {
   // States
   const [formData, setFormData] = useState<FormData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string>('');
-  const [step, setStep] = useState<'register' | 'form' | 'success'>('register');
-  const [participant, setParticipant] = useState<ParticipantData>({ name: '', email: '' });
-  const [participantId, setParticipantId] = useState<string>('');
-  const [responses, setResponses] = useState<{ [key: number]: { response: any, answer: any, questionId: string } }>({});
+  const [error, setError] = useState<string>("");
+  const [step, setStep] = useState<"register" | "form" | "success">("register");
+  const [participant, setParticipant] = useState<ParticipantData>({
+    name: "",
+    email: "",
+  });
+  const [participantId, setParticipantId] = useState<string>("");
+  const [responses, setResponses] = useState<{
+    [key: number]: { response: any; answer: any; questionId: string };
+  }>({});
   const [submitting, setSubmitting] = useState(false);
-  const [scoreData, setScoreData] = useState<{ 
-    totalScore: number; 
-    maxPossibleScore: number; 
+  const [scoreData, setScoreData] = useState<{
+    totalScore: number;
+    maxPossibleScore: number;
     percentage: number;
     results?: any[];
   } | null>(null);
-  const [imageLoading, setImageLoading] = useState<{ [key: string]: boolean }>({});
+  const [imageLoading, setImageLoading] = useState<{ [key: string]: boolean }>(
+    {}
+  );
   const [registering, setRegistering] = useState(false);
 
   // Calculate total points
@@ -60,18 +67,18 @@ const PublicFormPage = () => {
 
   // Handle image loading
   const handleImageLoad = (imageKey: string) => {
-    setImageLoading(prev => ({ ...prev, [imageKey]: false }));
+    setImageLoading((prev) => ({ ...prev, [imageKey]: false }));
   };
 
   const handleImageLoadStart = (imageKey: string) => {
-    setImageLoading(prev => ({ ...prev, [imageKey]: true }));
+    setImageLoading((prev) => ({ ...prev, [imageKey]: true }));
   };
 
   // Load form data
   useEffect(() => {
     const loadForm = async () => {
       if (!formUrl) {
-        setError('Invalid form URL');
+        setError("Invalid form URL");
         setLoading(false);
         return;
       }
@@ -81,10 +88,10 @@ const PublicFormPage = () => {
         if (response.success) {
           setFormData(response.data.form);
         } else {
-          setError('Form not found or not accessible');
+          setError("Form not found or not accessible");
         }
       } catch (err: any) {
-        setError(err.message || 'Failed to load form');
+        setError(err.message || "Failed to load form");
       } finally {
         setLoading(false);
       }
@@ -109,10 +116,13 @@ const PublicFormPage = () => {
     setRegistering(true);
 
     try {
-      const response = await formService.registerParticipant(formUrl!, participant);
+      const response = await formService.registerParticipant(
+        formUrl!,
+        participant
+      );
       if (response.success) {
         setParticipantId(response.data.participantId);
-        setStep('form');
+        setStep("form");
         toast({
           title: "Registration Successful",
           description: "You can now fill out the form.",
@@ -130,10 +140,15 @@ const PublicFormPage = () => {
   };
 
   // Handle answer updates
-  const handleAnswerUpdate = (questionIndex: number, questionId: string, response: any, answer: any) => {
-    setResponses(prev => ({
+  const handleAnswerUpdate = (
+    questionIndex: number,
+    questionId: string,
+    response: any,
+    answer: any
+  ) => {
+    setResponses((prev) => ({
       ...prev,
-      [questionIndex]: { response, answer, questionId }
+      [questionIndex]: { response, answer, questionId },
     }));
   };
 
@@ -142,7 +157,9 @@ const PublicFormPage = () => {
     if (!formData || !participantId) return;
 
     // Validate all questions are answered
-    const unansweredQuestions = formData.questions.filter((_, index) => !responses[index]);
+    const unansweredQuestions = formData.questions.filter(
+      (_, index) => !responses[index]
+    );
     if (unansweredQuestions.length > 0) {
       toast({
         title: "Incomplete Form",
@@ -157,22 +174,28 @@ const PublicFormPage = () => {
     try {
       const formattedResponses = formData.questions.map((question, index) => ({
         questionIndex: index,
-        questionId: responses[index]?.questionId || question['question-id'],
-        questionType: question['question-type'] as 'Categorize' | 'Cloze' | 'Comprehension',
+        questionId: responses[index]?.questionId || question["question-id"],
+        questionType: question["question-type"] as
+          | "Categorize"
+          | "Cloze"
+          | "Comprehension",
         response: responses[index]?.response || {},
-        answer: responses[index]?.answer || {}
+        answer: responses[index]?.answer || {},
       }));
 
       // Calculate scores client-side before submission
-      const scoreResult = calculateTotalScore(formData.questions, formattedResponses);
-      console.log('Client-side score calculation:', scoreResult);
+      const scoreResult = calculateTotalScore(
+        formData.questions,
+        formattedResponses
+      );
+      console.log("Client-side score calculation:", scoreResult);
 
       const response = await formService.submitFormResponse(formUrl!, {
         participantId,
         responses: formattedResponses,
         // Include pre-calculated scores
         totalScore: scoreResult.totalEarned,
-        maxPossibleScore: scoreResult.totalMax
+        maxPossibleScore: scoreResult.totalMax,
       });
 
       if (response.success) {
@@ -181,9 +204,9 @@ const PublicFormPage = () => {
           totalScore: scoreResult.totalEarned,
           maxPossibleScore: scoreResult.totalMax,
           percentage: scoreResult.percentage,
-          results: scoreResult.results
+          results: scoreResult.results,
         });
-        setStep('success');
+        setStep("success");
         toast({
           title: "Success!",
           description: "Your response has been submitted successfully.",
@@ -192,7 +215,8 @@ const PublicFormPage = () => {
     } catch (err: any) {
       toast({
         title: "Submission Failed",
-        description: err.message || "Failed to submit response. Please try again.",
+        description:
+          err.message || "Failed to submit response. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -220,7 +244,7 @@ const PublicFormPage = () => {
               <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
               <h3 className="text-lg font-semibold mb-2">Form Not Available</h3>
               <p className="text-muted-foreground mb-4">{error}</p>
-              <Button onClick={() => navigate('/')}>Go Home</Button>
+              <Button onClick={() => navigate("/")}>Go Home</Button>
             </div>
           </CardContent>
         </Card>
@@ -238,7 +262,7 @@ const PublicFormPage = () => {
           <CardHeader>
             {formData.header.headerImg && (
               <div className="relative">
-                {imageLoading['header'] && (
+                {imageLoading["header"] && (
                   <div className="w-full h-48 bg-gray-200 rounded-lg mb-4 flex items-center justify-center animate-pulse">
                     <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
                   </div>
@@ -247,23 +271,27 @@ const PublicFormPage = () => {
                   src={formData.header.headerImg}
                   alt="Form header"
                   className={`w-full h-48 object-cover rounded-lg mb-4 transition-opacity duration-300 ${
-                    imageLoading['header'] ? 'opacity-0 absolute top-0 left-0' : 'opacity-100'
+                    imageLoading["header"]
+                      ? "opacity-0 absolute top-0 left-0"
+                      : "opacity-100"
                   }`}
-                  onLoadStart={() => handleImageLoadStart('header')}
-                  onLoad={() => handleImageLoad('header')}
-                  onError={() => handleImageLoad('header')}
+                  onLoadStart={() => handleImageLoadStart("header")}
+                  onLoad={() => handleImageLoad("header")}
+                  onError={() => handleImageLoad("header")}
                 />
               </div>
             )}
             <h1 className="text-2xl font-bold">{formData.header.title}</h1>
             {formData.header.description && (
-              <p className="text-muted-foreground">{formData.header.description}</p>
+              <p className="text-muted-foreground">
+                {formData.header.description}
+              </p>
             )}
           </CardHeader>
         </Card>
 
         {/* Registration Step */}
-        {step === 'register' && (
+        {step === "register" && (
           <Card>
             <CardHeader>
               <h2 className="text-xl font-semibold">Participant Information</h2>
@@ -279,7 +307,12 @@ const PublicFormPage = () => {
                     id="name"
                     type="text"
                     value={participant.name}
-                    onChange={(e) => setParticipant(prev => ({ ...prev, name: e.target.value }))}
+                    onChange={(e) =>
+                      setParticipant((prev) => ({
+                        ...prev,
+                        name: e.target.value,
+                      }))
+                    }
                     placeholder="Enter your full name"
                     required
                   />
@@ -290,7 +323,12 @@ const PublicFormPage = () => {
                     id="email"
                     type="email"
                     value={participant.email}
-                    onChange={(e) => setParticipant(prev => ({ ...prev, email: e.target.value }))}
+                    onChange={(e) =>
+                      setParticipant((prev) => ({
+                        ...prev,
+                        email: e.target.value,
+                      }))
+                    }
                     placeholder="Enter your email address"
                     required
                   />
@@ -302,7 +340,7 @@ const PublicFormPage = () => {
                       Starting Form...
                     </>
                   ) : (
-                    'Start Form'
+                    "Start Form"
                   )}
                 </Button>
               </form>
@@ -311,18 +349,25 @@ const PublicFormPage = () => {
         )}
 
         {/* Form Step */}
-        {step === 'form' && (
+        {step === "form" && (
           <div className="space-y-6">
             {/* Form Points Summary */}
             <Card className="bg-blue-50 border-blue-200">
               <CardContent className="pt-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium text-blue-800">Form Overview:</span>
-                    <span className="text-blue-700">{formData.questions.length} question{formData.questions.length !== 1 ? 's' : ''}</span>
+                    <span className="font-medium text-blue-800">
+                      Form Overview:
+                    </span>
+                    <span className="text-blue-700">
+                      {formData.questions.length} question
+                      {formData.questions.length !== 1 ? "s" : ""}
+                    </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="font-medium text-blue-800">Total Points:</span>
+                    <span className="font-medium text-blue-800">
+                      Total Points:
+                    </span>
                     <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
                       {calculateTotalPoints()} points
                     </span>
@@ -335,22 +380,22 @@ const PublicFormPage = () => {
               <Card key={index}>
                 <CardContent className="pt-6">
                   <PreviewQuestionCard
+                    imageLoading={imageLoading}
+                    onImageLoadStart={handleImageLoadStart}
+                    onImageLoad={handleImageLoad}
                     question={question}
                     questionIndex={index}
                     onAnswerUpdate={handleAnswerUpdate}
                     isInteractive={true}
-                    imageLoading={imageLoading}
-                    onImageLoadStart={handleImageLoadStart}
-                    onImageLoad={handleImageLoad}
                   />
                 </CardContent>
               </Card>
             ))}
-            
+
             <Card>
               <CardContent className="pt-6">
-                <Button 
-                  onClick={handleSubmit} 
+                <Button
+                  onClick={handleSubmit}
                   disabled={submitting}
                   className="w-full"
                 >
@@ -360,7 +405,7 @@ const PublicFormPage = () => {
                       Submitting...
                     </>
                   ) : (
-                    'Submit Response'
+                    "Submit Response"
                   )}
                 </Button>
               </CardContent>
@@ -369,37 +414,50 @@ const PublicFormPage = () => {
         )}
 
         {/* Success Step */}
-        {step === 'success' && (
+        {step === "success" && (
           <Card>
             <CardContent className="pt-6">
               <div className="text-center">
                 <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
                 <h2 className="text-2xl font-semibold mb-2">Thank You!</h2>
                 <p className="text-muted-foreground mb-6">
-                  Your response has been successfully submitted. We appreciate your participation.
+                  Your response has been successfully submitted. We appreciate
+                  your participation.
                 </p>
-                
+
                 {/* Score Display */}
                 {scoreData && (
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
-                    <h3 className="text-lg font-semibold text-blue-800 mb-4">Your Results</h3>
+                    <h3 className="text-lg font-semibold text-blue-800 mb-4">
+                      Your Results
+                    </h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="text-center">
-                        <div className="text-2xl font-bold text-blue-600">{scoreData.totalScore}</div>
-                        <div className="text-sm text-blue-700">Points Earned</div>
+                        <div className="text-2xl font-bold text-blue-600">
+                          {scoreData.totalScore}
+                        </div>
+                        <div className="text-sm text-blue-700">
+                          Points Earned
+                        </div>
                       </div>
                       <div className="text-center">
-                        <div className="text-2xl font-bold text-blue-600">{scoreData.maxPossibleScore}</div>
-                        <div className="text-sm text-blue-700">Total Points</div>
+                        <div className="text-2xl font-bold text-blue-600">
+                          {scoreData.maxPossibleScore}
+                        </div>
+                        <div className="text-sm text-blue-700">
+                          Total Points
+                        </div>
                       </div>
                       <div className="text-center">
-                        <div className="text-3xl font-bold text-blue-600">{scoreData.percentage}%</div>
+                        <div className="text-3xl font-bold text-blue-600">
+                          {scoreData.percentage}%
+                        </div>
                         <div className="text-sm text-blue-700">Score</div>
                       </div>
                     </div>
                     <div className="mt-4">
                       <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div 
+                        <div
                           className="bg-blue-600 h-2 rounded-full transition-all duration-500"
                           style={{ width: `${scoreData.percentage}%` }}
                         ></div>
@@ -407,10 +465,8 @@ const PublicFormPage = () => {
                     </div>
                   </div>
                 )}
-                
-                <Button onClick={() => navigate('/')}>
-                  Return to Home
-                </Button>
+
+                <Button onClick={() => navigate("/")}>Return to Home</Button>
               </div>
             </CardContent>
           </Card>
