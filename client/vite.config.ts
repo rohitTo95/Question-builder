@@ -11,7 +11,7 @@ export default defineConfig(({ mode }) => {
       port: 8080,
       proxy: {
         '/api': {
-          target: 'https://question-builder-3gg4.onrender.com',
+          target: env.VITE_SERVER_URL || 'http://localhost:3000',
           changeOrigin: true,
           secure: false,
         }

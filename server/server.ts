@@ -36,7 +36,18 @@ const port = process.env.PORT || 3000
 // CORS configuration - strict in production, permissive in development
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production' 
-    ? (process.env.CLIENT_URL ? [process.env.CLIENT_URL] : false) // Only allow specified client URL in production
+    ? (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+        // Allow requests with no origin (e.g., mobile apps, server-to-server)
+        if (!origin) return callback(null, true);
+        
+        const allowedOrigins = process.env.CLIENT_URL ? [process.env.CLIENT_URL] : [];
+        if (allowedOrigins.includes(origin)) {
+          return callback(null, true);
+        }
+        
+        console.warn(`CORS blocked request from origin: ${origin}`);
+        return callback(new Error('Not allowed by CORS'), false);
+      }
     : ['http://localhost:8080', 'http://localhost:3000', 'http://127.0.0.1:8080'], // Development URLs
   credentials: true, // Allow cookies
   optionsSuccessStatus: 200
@@ -52,20 +63,9 @@ app.use(cookieParser())
 if (process.env.NODE_ENV === 'production') {
   app.use((req, res, next): void => {
     const origin = req.get('origin');
-    const allowedOrigins = process.env.CLIENT_URL ? [process.env.CLIENT_URL] : [];
     
     // Log the request origin for monitoring
-    console.log(`Request from origin: ${origin}`);
-    
-    // Additional security check for production
-    if (origin && allowedOrigins.length > 0 && !allowedOrigins.includes(origin)) {
-      console.warn(`Rejected request from unauthorized origin: ${origin}`);
-      res.status(403).json({ 
-        success: false, 
-        message: 'Forbidden: Unauthorized origin' 
-      });
-      return;
-    }
+    console.log(`Request from origin: ${origin || 'no-origin'}, IP: ${req.ip}, User-Agent: ${req.get('User-Agent')?.substring(0, 50)}...`);
     
     next();
   });
@@ -80,6 +80,17 @@ app.get('/', (req, res) => {
         message: 'Hello World.... Form Builder API Server :)',
         status: 'running',
         timestamp: new Date().toISOString()
+    })
+})
+
+// Dedicated health check endpoint
+app.get('/api/health', (req, res) => {
+    res.json({ 
+        status: 'healthy',
+        environment: process.env.NODE_ENV || 'development',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        clientUrl: process.env.CLIENT_URL || 'not configured'
     })
 })
 
