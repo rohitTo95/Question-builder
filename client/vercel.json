@@ -9,6 +9,12 @@
     },
     {
       "source": "/(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "question-builder.vercel.app"
+        }
+      ],
       "destination": "/index.html"
     }
   ],
